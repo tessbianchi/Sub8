@@ -3,13 +3,7 @@
 Original Author: Annie Luc
 '''
 from __future__ import division
-import traceback
 import numpy as np
-import time
-import sys
-import os
-import random
-import time
 import ode
 
 
@@ -20,24 +14,24 @@ class Constants(object):
 
 
 class World(object):
-    def __init__(self, dt=1/45.):
+    def __init__(self, dt=(1 / 45.)):
         '''This section incorporates PyODE to define methods to create and draw three objects: a sphere, box, or cylinder.
-        Some code borrowed from http://sourceforge.net/p/pyode/mailman/message/19674697/.
+            Some code borrowed from http://sourceforge.net/p/pyode/mailman/message/19674697/.
         '''
         self.dt = dt
         self.entities = []
         # Create a world object
         self.ode_world = ode.World()
-        self.ode_world.setGravity(np.array([0, 0, Constants.g]))    
+        self.ode_world.setGravity(np.array([0, 0, Constants.g]))
 
         self.ode_world.setAngularDamping(0.2)
         # self.ode_world.setLinearDamping(0.2)
         self.ode_world.setERP(0.8)
         self.ode_world.setCFM(1E-5)
-    
+
         # Create a space object
         self.space = ode.Space()
-    
+
         self.contact_group = ode.JointGroup()
         self.ode_world.step(self.dt)
 
@@ -126,7 +120,7 @@ class Entity(object):
     def angular_vel(self):
         angular_vel = np.array(self.body.getAngularVel(), dtype=np.float32)
         return angular_vel
-    
+
     @property
     def submerged_volume(self):
         '''Assume water is at z = 0
@@ -151,8 +145,10 @@ class Entity(object):
         '''Apply a quadratic damping force'''
         velocity = np.array(self.body.getLinearVel(), dtype=np.float32)
         norm_velocity = np.linalg.norm(velocity)
-        unit_velocity = velocity / norm_velocity
-        self.body.addForce((norm_velocity ** 2) * self._linear_damping_coeff * unit_velocity)
+        if not np.isclose(norm_velocity, 0.0):
+            unit_velocity = velocity / norm_velocity
+            force = (norm_velocity ** 2) * self._linear_damping_coeff * unit_velocity
+            self.body.addForce(force)
 
     def apply_damping_torque(self):
         '''Apply a linear rotational damping torque'''
@@ -219,23 +215,16 @@ class Sphere(Entity):
 
 
 class Mesh(Entity):
-    def __init__(self, world, space, position, density, mesh_info, body=True):
-        '''Mesh object - set body to false if you don't want physics
+    def __init__(self, world, space, position, density, mesh_info):
+        '''Mesh object - Dynamics are *unsupported* right now
+            This spawns a static object that can only be collided with and does not move
+            TODO: Fix that
         '''
-        if body:
-            self.body = ode.Body(world)
-            self.body.setPosition(position)
-            M = ode.Mass()
-            M.setSphere(density, radius)
-            self.body.setMass(M)
-
         # Create a mesh geometry for collision detection
         mesh_vertices, mesh_faces, mesh_normals, texcoords = mesh_info
         meshdata = ode.TriMeshData()
         meshdata.build(mesh_vertices, mesh_faces)
         self.geom = ode.GeomTriMesh(meshdata, space)
-        if body:
-            self.geom.setBody(self.body)
 
     def step(self, dt):
         # self.apply_damping_force()
