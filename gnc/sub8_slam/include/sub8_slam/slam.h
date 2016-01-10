@@ -9,13 +9,14 @@
 
 namespace slam {
 
+typedef float SlamPrecision;
 typedef cv::Point2f Point2;
 typedef cv::Point3f Point3;
 typedef std::vector<Point2> PointVector;
 typedef std::vector<Point3> Point3Vector;
-// typedef std::vector<cv::Mat(4, 1, CV_32FC1)> Point4Vector;
 typedef std::vector<cv::Mat> Point4Vector;
 typedef std::vector<uchar> StatusVector;
+// TODO: int->size_t
 typedef std::vector<int> IdVector;
 
 struct Pose {
@@ -27,6 +28,7 @@ struct Pose {
 void preprocess(cv::Mat& input_image, cv::Mat& output_image, const cv::Mat& intrinsics,
                 const cv::Mat& distortion);
 
+// Discover the first set of features (Should rename this to discover_features)
 void initialize(const cv::Mat& frame, PointVector& corners, IdVector& feature_ids);
 
 PointVector filter(const std::vector<uchar>& status, const PointVector& points);
@@ -52,7 +54,7 @@ void triangulate(const Pose& pose_1, const Pose& pose_2, const cv::Mat K, const 
 double average_reprojection_error(const Point3Vector& points3d, const PointVector& points2d,
                                   const Pose& pose, const cv::Mat& K);
 
-// ******* SBA
+// ******* SBA *******
 void run_sba(cv::Mat& intrinsics, std::vector<Pose>& poses);
 
 class Frame {
@@ -62,6 +64,8 @@ class Frame {
   // Estimated pose of frame
  public:
   cv::Mat image;
+  double max_x = 0; // Must be set (Even though this is an integer in principle)
+  double max_y = 0; // Must be set (Even though this is an integer in principle)
   IdVector feature_ids;
   PointVector feature_locations;
   Pose camera_pose;
@@ -72,14 +76,13 @@ class Frame {
   Frame(Pose& pose, IdVector& feature_ids, PointVector& feature_locations);
 };
 
-// 2d visualization
+// ******* 2d visualization *******
 void draw_points(cv::Mat& frame, const PointVector& points, int radius = 5, int thickness = 1);
 void draw_point_ids(cv::Mat& frame, const PointVector& points, const std::vector<int>& point_ids);
 void draw_reprojection(cv::Mat& frame, const Point3Vector& points3d, const Pose& pose,
                        const cv::Mat& K);
 
 // ******* 3D Visualization *******
-
 class RvizVisualizer {
  public:
   ros::Publisher camera_pub;

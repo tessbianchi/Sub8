@@ -3,7 +3,9 @@
 namespace slam {
 
 Frame::Frame(cv::Mat& image, Pose& pose, IdVector& feature_ids, PointVector& feature_locations) {
-  set_image(image);  // Hmm...
+  // set_image(image);  // Hmm...
+  max_x = image.cols;
+  max_y = image.rows;
   set_features(feature_ids, feature_locations);
   set_pose(pose);
 }
