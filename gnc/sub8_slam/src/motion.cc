@@ -63,15 +63,19 @@ Pose estimate_motion_pnp(const Point3Vector& pts_3d, const PointVector& pts_2d, 
   //             bool useExtrinsicGuess = false, int flags = ITERATIVE);
   cv::Mat translation_vector;
   cv::Mat rotation_vector;
-  cv::solvePnP(pts_3d, pts_2d, K, cv::Mat(), rotation_vector, translation_vector, false,
-               CV_ITERATIVE);
+  // cv::solvePnP(pts_3d, pts_2d, K, cv::Mat(), rotation_vector, translation_vector, false,
+  // CV_ITERATIVE);
+  solvePnPRansac(pts_3d, pts_2d, K, cv::Mat(), rotation_vector, translation_vector, false, 100,
+                 7.0);
   Pose pose;
   pose.translation = translation_vector;
   // How bout that!
   cv::Rodrigues(rotation_vector, pose.rotation);
+
+  // I goofed somewhere, but for whatever reason we don't need to invert here...
   // Quick-inverse
-  pose.rotation = -pose.rotation.t();  // Transpose R
-  pose.translation = pose.rotation * pose.translation;
+  // pose.rotation = pose.rotation.t();  // Transpose Rq
+  // pose.translation = pose.rotation * pose.translation;
   return pose;
 }
 
