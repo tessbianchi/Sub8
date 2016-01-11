@@ -112,6 +112,7 @@ RvizVisualizer::RvizVisualizer() {
   camera_pub = nh.advertise<visualization_msgs::Marker>("/cameras", 1);
   point_pub = nh.advertise<visualization_msgs::Marker>("/points", 1);
   ros::spinOnce();
+
   // Give these guys some time to get ready
   ros::Duration(0.5).sleep();
 }

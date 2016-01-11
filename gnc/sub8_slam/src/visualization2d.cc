@@ -25,7 +25,7 @@ void draw_reprojection(cv::Mat& frame, const Point3Vector& points3d, const Pose&
   cv::Rodrigues(pose.rotation, rotation_vector);
   cv::projectPoints(points3d, rotation_vector, pose.translation, K, cv::Mat(), points2d_est);
 
-  PointVector points_est = points2d_est; // casting tho
+  PointVector points_est = points2d_est;  // casting tho
   for (unsigned int k = 0; k < points_est.size(); k++) {
     cv::circle(frame, points_est[k], 2, cv::Scalar(10, 10, 240), -1);
   }

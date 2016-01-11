@@ -7,9 +7,9 @@ namespace slam {
 
 void preprocess(cv::Mat& input_image, cv::Mat& output_image, const cv::Mat& intrinsics,
                 const cv::Mat& distortion) {
-  /* Resize and undistort input image
-      -- Destroys the input image in the process
-  */
+  // Resize and undistort input image
+  //    -- Destroys the input image in the process
+
   cv::cvtColor(input_image, input_image, CV_BGR2GRAY);
   cv::resize(input_image, input_image, cv::Size(input_image.cols / 2, input_image.rows / 2));
 #ifdef UNDISTORT
@@ -47,7 +47,7 @@ void initialize(const cv::Mat& frame, PointVector& corners, IdVector& feature_id
 }
 
 IdVector which_points(const StatusVector& status, const IdVector& previous) {
-  /* Figure out which points from the original appear in the current frame, numbered */
+  // Figure out which points from the original appear in the current frame, numbered
   IdVector point_associations;
   if (previous.size() == 0) {
     for (unsigned int k = 0; k < status.size(); k++) {
@@ -66,9 +66,9 @@ IdVector which_points(const StatusVector& status, const IdVector& previous) {
 }
 
 Point3Vector get_points(const IdVector& keep_ids, const Point3Vector& points) {
-  /* This is wasteful (making a new vector each time!)
-    TODO: Make our own pnp solver that works with pt masks (No copies)
-  */
+  // This is wasteful (making a new vector each time!)
+  // TODO: Make our own pnp solver that works with pt masks (No copies)
+
   // TODO Make this and filter into a template
   Point3Vector output_points;
   for (unsigned int k = 0; k < keep_ids.size(); k++) {
@@ -79,8 +79,7 @@ Point3Vector get_points(const IdVector& keep_ids, const Point3Vector& points) {
 }
 
 PointVector filter(const StatusVector& status, const PointVector& points) {
-  /* Return a PointVector where the elements for which status=0 are removed from points.
-  */
+  // Return a copy of $points, where ever only the elements for which bool(status)==true are kept
   PointVector filtered_points;
   for (unsigned int k = 0; k < status.size(); k++) {
     if (status[k]) {
@@ -94,7 +93,7 @@ PointVector filter(const StatusVector& status, const PointVector& points) {
 
 void optical_flow(const cv::Mat& prev_frame, const cv::Mat& cur_frame, PointVector& prev_pts,
                   PointVector& next_pts, StatusVector& status) {
-  /* Compute best sparse optical flow, Lukas-Kanade */
+  // Compute best sparse optical flow, Lukas-Kanade
   // Parameters (Not to be exposed!)
   cv::Size win_size(7, 7);  // (21, 21)
   int max_level = 2;
@@ -107,5 +106,4 @@ void optical_flow(const cv::Mat& prev_frame, const cv::Mat& cur_frame, PointVect
   cv::calcOpticalFlowPyrLK(prev_frame, cur_frame, prev_pts, next_pts, status, error, win_size,
                            max_level, criteria);
 }
-
 }

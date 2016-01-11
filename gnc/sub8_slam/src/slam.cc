@@ -29,7 +29,7 @@
     --> Improve with SBA
       --> SBA tools
     --> Metric Motion
-      --> PnP solving
+      x --> PnP solving
       --> Huber distance Lie-Alg optimization?
       --> Sparse model-based image alignment
       --> GN solver
@@ -53,7 +53,7 @@
     --> g2o (A little more complicated, but more globally useful than sba.h)
     --> Sparse bundle-adjustment
       x --> Get SBA to build
-      --> Make some crappy SBA classes
+      x --> Make some crappy SBA classes
 
   --> Visualization
     x --> Visualize triangulated points
@@ -75,7 +75,7 @@
       --> Struggle depth certainty is probably an indicator of a need for reinitializing
 
   --> Experiments
-    --> See if 32F improves speed...it will not affect accuracy
+    x --> See if 32F improves speed...it will not affect accuracy
 
   --> Try OpenCL for...
     --> Optical Flow
@@ -140,14 +140,14 @@ int main(int argc, char **argv) {
   int frame_num = 0;
   char key_press = '\n';
   for (;;) {
-    //////// Bookkeeping
+    ////// Bookkeeping
     cap >> input_frame;
     if (input_frame.empty()) {
       std::cout << "Done";
       break;
     }
 
-    /////// Preprocessing
+    ////// Preprocessing
     slam::preprocess(input_frame, new_frame, intrinsics, distortion);
 
     // Make a nice new frame, on which to draw colored things
@@ -187,12 +187,10 @@ int main(int argc, char **argv) {
                                                       F, intrinsics);
 
     ////// Triangulate points and dismiss the guess based on magnitude of reprojection error
-
     slam::Point3Vector triangulation_F;
     slam::triangulate(prev_pose, pose_F, intrinsics, prev_feature_locations, new_feature_locations,
                       triangulation_F);
 
-    // Todo: use PNP pose
     double error_amt = slam::average_reprojection_error(triangulation_F, new_feature_locations,
                                                         pose_F, intrinsics);
     // std::cout << "Error: " << error_amt << std::endl;
@@ -216,13 +214,18 @@ int main(int argc, char **argv) {
       std::cout << "PNP Error: " << pnp_error_amt << std::endl;
       slam::draw_reprojection(render_frame, map_visible, pose_pnp, intrinsics);
 
-      // Magic number -- TODO why is this so large compared to 100.0?
-      if (pnp_error_amt < 2500.0) {
+      // For now, same error threshold as the reprojection error from the pose estimated by the
+      // fundamental matrix decomposition
+      if (pnp_error_amt < 100.0) {
         slam::Point3 pt(pose_pnp.translation);
         camera_locations.push_back(pt);
 
-        slam::Frame key_frame(pose_pnp, new_feature_ids, new_feature_locations);
+        // slam::Frame key_frame(pose_pnp, new_feature_ids, new_feature_locations);
+        slam::Frame key_frame(new_frame, pose_pnp, new_feature_ids, new_feature_locations);
         frames.push_back(key_frame);
+        if (frames.size() >= 2) {
+          slam::run_sba(intrinsics, frames, map);
+        }
       }
     }
 
@@ -231,11 +234,11 @@ int main(int argc, char **argv) {
     slam::draw_point_ids(render_frame, new_feature_locations, new_feature_ids);
     // Shove that shit into Rviz!
     if (error_amt < 100.0) {
-      rviz.draw_points(triangulation_F, error_amt > 100.0);
+      // rviz.draw_points(triangulation_F, error_amt > 100.0);
     }
 
     if (camera_locations.size() > 0) {
-      rviz.draw_points(camera_locations, true);
+      // rviz.draw_points(camera_locations, true);
     }
 
     prev_feature_locations = new_feature_locations;
