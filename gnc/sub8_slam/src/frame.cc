@@ -17,8 +17,9 @@ Frame::Frame(Pose& pose, IdVector& feature_ids, PointVector& feature_locations) 
 
 void Frame::set_pose(Pose& pose) {
   // TODO This is super non-optimized, we can probably get away with avoiding clones
-  camera_pose.translation = pose.translation.clone();
-  camera_pose.rotation = pose.rotation.clone();
+  camera_pose = pose;
+  // camera_pose.translation = pose.translation.clone();
+  // camera_pose.rotation = pose.rotation.clone();
 }
 
 void Frame::set_features(IdVector& feature_ids, PointVector& feature_locations) {
@@ -29,7 +30,5 @@ void Frame::set_features(IdVector& feature_ids, PointVector& feature_locations) 
   this->feature_locations = feature_locations;
 }
 
-void Frame::set_image(cv::Mat& image) {
-  this->image = image.clone();
-}
+void Frame::set_image(cv::Mat& image) { this->image = image.clone(); }
 }

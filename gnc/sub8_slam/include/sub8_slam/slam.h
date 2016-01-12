@@ -1,11 +1,15 @@
 #pragma once  // header guard
 #include <vector>
 #include <iostream>
+#include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
+#include <opencv2/core/eigen.hpp>
 #include <sparse_bundle_adjustment/sba.h>
 #include <visualization_msgs/Marker.h>
-#include "ros/ros.h"
-#include "ros/assert.h"
+#include <ros/ros.h>
+#include <ros/assert.h>
+
+#define VISUALIZE
 
 namespace slam {
 
@@ -19,9 +23,36 @@ typedef std::vector<uchar> StatusVector;
 // TODO: int->size_t
 typedef std::vector<int> IdVector;
 
-struct Pose {
+typedef Eigen::Affine3f Pose;
+struct CvPose {
   cv::Mat rotation;
   cv::Mat translation;
+
+  CvPose(const Pose& pose) {
+    Eigen::Matrix3f R;
+    Eigen::Vector3f t;
+    R = pose.linear();
+    t = pose.translation();
+    cv::eigen2cv(R, rotation);
+    cv::eigen2cv(t, translation);
+  }
+
+  CvPose() {
+    rotation = cv::Mat();
+    translation = cv::Mat();
+  }
+
+  Pose pose() {
+    Eigen::Matrix4f pose_matrix;
+    Eigen::Matrix3f eigen_rotation;
+    Eigen::Vector3f eigen_translation;
+
+    cv::cv2eigen(rotation, eigen_rotation);
+    cv::cv2eigen(translation, eigen_translation);
+    pose_matrix << eigen_rotation, eigen_translation, 0.0, 0.0, 0.0, 1.0;
+    Eigen::Affine3f eigen_pose;
+    eigen_pose = pose_matrix;
+  }
 };
 
 // Undistort the image, downsample by half
@@ -43,9 +74,13 @@ IdVector which_points(const StatusVector& status, const IdVector& previous);
 cv::Mat estimate_fundamental_matrix(const PointVector& pts_1, const PointVector& pts_2,
                                     std::vector<uchar>& inliers);
 
+// Estimate a pose transform given two sets of corresponding features in two images, using a
+// fundamental matrix decomposition
 Pose estimate_motion_fundamental_matrix(const PointVector& pts_1, const PointVector& pts_2,
                                         const cv::Mat& F, const cv::Mat& K);
 
+// Estimate a pose transform given some manner of 3d "map", with each point in that map
+// corresponding to a 2d point (in a new image). PNP stands for "Perspective n-point"
 Pose estimate_motion_pnp(const Point3Vector& pts_3d, const PointVector& pts_2d, const cv::Mat& K);
 
 void triangulate(const Pose& pose_1, const Pose& pose_2, const cv::Mat K, const PointVector& pts_1,
@@ -55,8 +90,6 @@ double average_reprojection_error(const Point3Vector& points3d, const PointVecto
                                   const Pose& pose, const cv::Mat& K);
 
 // ******* SBA *******
-void run_sba(cv::Mat& intrinsics, std::vector<Pose>& poses);
-
 class Frame {
   // Map feature ids
   // Actual image + pyramid
@@ -64,8 +97,8 @@ class Frame {
   // Estimated pose of frame
  public:
   cv::Mat image;
-  double max_x = 0; // Must be set (Even though this is an integer in principle)
-  double max_y = 0; // Must be set (Even though this is an integer in principle)
+  double max_x = 0;  // Must be set (Even though this is an integer in principle)
+  double max_y = 0;  // Must be set (Even though this is an integer in principle)
   IdVector feature_ids;
   PointVector feature_locations;
   Pose camera_pose;
@@ -75,6 +108,8 @@ class Frame {
   Frame(cv::Mat& image, Pose& pose, IdVector& feature_ids, PointVector& feature_locations);
   Frame(Pose& pose, IdVector& feature_ids, PointVector& feature_locations);
 };
+
+void run_sba(cv::Mat& intrinsics, std::vector<Frame>& frames, Point3Vector& map);
 
 // ******* 2d visualization *******
 void draw_points(cv::Mat& frame, const PointVector& points, int radius = 5, int thickness = 1);
@@ -93,5 +128,6 @@ class RvizVisualizer {
                      visualization_msgs::Marker& point_marker);
   void draw_points(Point3Vector& points, bool flag);
   void draw_sba(const sba::SysSBA& sba, int decimation, int bicolor);
+  void draw_cameras(const std::vector<Frame>& frames, int skip_frames = 1);
 };
 }

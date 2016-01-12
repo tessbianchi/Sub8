@@ -20,10 +20,15 @@ void draw_point_ids(cv::Mat& frame, const PointVector& points, const IdVector& p
 void draw_reprojection(cv::Mat& frame, const Point3Vector& points3d, const Pose& pose,
                        const cv::Mat& K) {
   cv::Mat points2d_est;
-  // cv::Mat points2d_measured(points2d);
   cv::Mat rotation_vector;
-  cv::Rodrigues(pose.rotation, rotation_vector);
-  cv::projectPoints(points3d, rotation_vector, pose.translation, K, cv::Mat(), points2d_est);
+
+  CvPose q_pose(pose);
+  // Eigen::Matrix3f pose_rot;
+  // pose_rot = pose.linear()
+  // cv::eigen2cv(pose_rot.matrix(), rotation_matrix);
+  // cv::Rodrigues(rotation_matrix, rotation_vector);
+  cv::Rodrigues(q_pose.rotation, rotation_vector);
+  cv::projectPoints(points3d, rotation_vector, q_pose.translation, K, cv::Mat(), points2d_est);
 
   PointVector points_est = points2d_est;  // casting tho
   for (unsigned int k = 0; k < points_est.size(); k++) {

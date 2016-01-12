@@ -1,7 +1,6 @@
+#include <sub8_slam/slam.h>
 #include <vector>
 #include <iostream>
-#include <opencv2/opencv.hpp>
-#include <sub8_slam/slam.h>
 
 namespace slam {
 
@@ -47,10 +46,13 @@ cv::Mat deskew(const cv::Mat T) {
 void triangulate(const Pose& pose_1, const Pose& pose_2, const cv::Mat K, const PointVector& pts_1,
                  const PointVector& pts_2, Point3Vector& triangulated) {
   cv::Mat mat_pose_1, mat_pose_2;
-  cv::hconcat(pose_1.rotation, pose_1.translation, mat_pose_1);
-  cv::hconcat(pose_2.rotation, pose_2.translation, mat_pose_2);
-  cv::Mat proj_1 = cv::Mat_<float>(K * mat_pose_1);
-  cv::Mat proj_2 = cv::Mat_<float>(K * mat_pose_2);
+  CvPose cv_pose_1(pose_1);
+  CvPose cv_pose_2(pose_2);
+
+  cv::hconcat(cv_pose_1.rotation, cv_pose_1.translation, mat_pose_1);
+  cv::hconcat(cv_pose_2.rotation, cv_pose_2.translation, mat_pose_2);
+  cv::Mat proj_1 = cv::Mat_<float>(K) * mat_pose_1;
+  cv::Mat proj_2 = cv::Mat_<float>(K) * mat_pose_2;
   cv::Mat output_pts = cv::Mat(4, pts_2.size(), CV_32F);
   cv::triangulatePoints(proj_1, proj_2, pts_1, pts_2, output_pts);
   convert_from_homogeneous4d(output_pts, triangulated);
@@ -66,8 +68,8 @@ Pose estimate_motion_pnp(const Point3Vector& pts_3d, const PointVector& pts_2d, 
   // cv::solvePnP(pts_3d, pts_2d, K, cv::Mat(), rotation_vector, translation_vector, false,
   // CV_ITERATIVE);
   solvePnPRansac(pts_3d, pts_2d, K, cv::Mat(), rotation_vector, translation_vector, false, 100,
-                 7.0);
-  Pose pose;
+                 3.0);
+  CvPose pose;
   pose.translation = translation_vector;
   // How bout that!
   cv::Rodrigues(rotation_vector, pose.rotation);
@@ -76,7 +78,19 @@ Pose estimate_motion_pnp(const Point3Vector& pts_3d, const PointVector& pts_2d, 
   // Quick-inverse
   // pose.rotation = pose.rotation.t();  // Transpose Rq
   // pose.translation = pose.rotation * pose.translation;
-  return pose;
+  Eigen::Matrix4f final_pose;
+  Eigen::Matrix3f rotation;
+  Eigen::Vector3f translation;
+
+  cv::cv2eigen(pose.rotation, rotation);
+  cv::cv2eigen(pose.translation, translation);
+  // final_pose << rotation.transpose(), rotation.transpose() * translation, 0.0, 0.0, 0.0, 1.0;
+  final_pose << -rotation, -translation, 0.0, 0.0, 0.0, 1.0;
+
+  Eigen::Affine3f true_final_pose;
+  true_final_pose = final_pose;
+
+  return true_final_pose;
 }
 
 Pose estimate_motion_fundamental_matrix(const PointVector& pts_1, const PointVector& pts_2,
@@ -114,7 +128,7 @@ Pose estimate_motion_fundamental_matrix(const PointVector& pts_1, const PointVec
 
   int best_count = 0;
   int current_count = 0;
-  Pose best_pose;
+  CvPose best_pose;
 
   // Explicitly test for the transform with the best front-ness
   // This will be called a handful of times, and does not merit serious optimization
@@ -151,7 +165,19 @@ Pose estimate_motion_fundamental_matrix(const PointVector& pts_1, const PointVec
     best_pose.rotation = R2;
     best_pose.translation = -t;
   }
-  return best_pose;
+  Eigen::Matrix4f final_pose;
+  Eigen::Matrix3f rotation;
+  Eigen::Vector3f translation;
+
+  cv::cv2eigen(best_pose.rotation, rotation);
+  cv::cv2eigen(best_pose.translation, translation);
+  final_pose << rotation, translation, 0.0, 0.0, 0.0, 1.0;
+  // final_pose << rotation.transpose(), rotation.transpose() * translation, 0.0, 0.0, 0.0, 1.0;
+  Eigen::Affine3f true_final_pose;
+  true_final_pose = final_pose;
+
+  // return best_pose.inv();
+  return true_final_pose;
 }
 
 double average_reprojection_error(const Point3Vector& points3d, const PointVector& points2d,
@@ -161,9 +187,11 @@ double average_reprojection_error(const Point3Vector& points3d, const PointVecto
   cv::Mat error;
   double average_error;
 
+  CvPose cv_pose(pose);
   cv::Mat rotation_vector;
-  cv::Rodrigues(pose.rotation, rotation_vector);
-  cv::projectPoints(points3d, rotation_vector, pose.translation, K, cv::Mat(), points2d_est);
+  cv::Rodrigues(cv_pose.rotation, rotation_vector);
+
+  cv::projectPoints(points3d, rotation_vector, cv_pose.translation, K, cv::Mat(), points2d_est);
   error = points2d_est - points2d_measured;
   for (unsigned int k; k < error.cols; k++) {
     average_error += cv::norm(error.col(k));

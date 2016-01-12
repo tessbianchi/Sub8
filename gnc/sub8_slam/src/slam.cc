@@ -19,6 +19,7 @@
       x --> Optical Flow
       x --> Detect new points
       x --> Track them & correspondence
+      --> Path-reversal testing
       --> Depth filter them
       --> Covariance weighted epipolar search
 
@@ -62,10 +63,22 @@
         x --> Make Rviz interface
     --> Visualize depth certainty
 
+  --> SBA
+    x --> Get Google Ceres to build
+    x --> Create a usable install script
+    --> Create Ceres demo
+    --> Create Ceres cost functors for SBA
+      --> Snavely
+    --> Create Ceres SBA helpers (And dispose of the old sba stuff)
+
   --> Testing
     x --> Make an analysis set
     x --> Record data
     --> Make a two-frame-sandbox executable for testing various things
+
+  --> Bugs
+    --> Fix pnp frame (Issue originates with triangulation)
+    --> SBA doesn't behave properly
 
   --> Improvements
     --> SSE on color
@@ -86,11 +99,12 @@
   x --> Put this in Sub Git
 */
 
+#include <sub8_slam/slam.h>
 #include <vector>
 #include <iostream>
 #include <opencv2/opencv.hpp>
-#include <sub8_slam/slam.h>
-#include "ros/ros.h"
+#include <ceres/ceres.h>
+#include <ros/ros.h>
 
 // Probably not super smooth to initialize using normal arrays
 float _intrinsics[] = {978.6015701, 0., 470.27648376, 0., 977.91377625, 270.84941812, 0., 0., 1.};
@@ -134,8 +148,10 @@ int main(int argc, char **argv) {
   cv::Mat input_frame, new_frame, render_frame;
   cv::Mat prev_frame;
   slam::Pose prev_pose;
-  prev_pose.rotation = cv::Mat::eye(3, 3, CV_32F);
-  prev_pose.translation = (cv::Mat_<float>(3, 1) << 0.0, 0.0, 0.0);
+  prev_pose = Eigen::Affine3f::Identity();
+  // prev_pose.rotation = cv::Mat::eye(3, 3, CV_32F);
+  // prev_pose.translation = (cv::Mat_<float>(3, 1) << 0.0, 0.0, 0.0);
+  bool map_drawn = false;  // Draw the map only once
 
   int frame_num = 0;
   char key_press = '\n';
@@ -196,7 +212,7 @@ int main(int argc, char **argv) {
     // std::cout << "Error: " << error_amt << std::endl;
 
     ////// Initialize a slam frame based on these shenanigans
-    if (error_amt < 100.0) {
+    if (error_amt < 5000.0) {
       // initialize map only if we have little reproj error
       if (map.size() == 0) {
         map = triangulation_F;
@@ -217,15 +233,15 @@ int main(int argc, char **argv) {
       // For now, same error threshold as the reprojection error from the pose estimated by the
       // fundamental matrix decomposition
       if (pnp_error_amt < 100.0) {
-        slam::Point3 pt(pose_pnp.translation);
-        camera_locations.push_back(pt);
+        // slam::Point3 pt(pose_pnp.translation);
+        // camera_locations.push_back(pt);
 
         // slam::Frame key_frame(pose_pnp, new_feature_ids, new_feature_locations);
         slam::Frame key_frame(new_frame, pose_pnp, new_feature_ids, new_feature_locations);
         frames.push_back(key_frame);
-        if (frames.size() >= 2) {
-          slam::run_sba(intrinsics, frames, map);
-        }
+        // if (frames.size() >= 2) {
+        // slam::run_sba(intrinsics, frames, map);
+        // }
       }
     }
 
@@ -233,12 +249,17 @@ int main(int argc, char **argv) {
     slam::draw_points(render_frame, new_feature_locations);
     slam::draw_point_ids(render_frame, new_feature_locations, new_feature_ids);
     // Shove that shit into Rviz!
-    if (error_amt < 100.0) {
-      // rviz.draw_points(triangulation_F, error_amt > 100.0);
+    if ((error_amt < 100.0) and !map_drawn) {
+      rviz.draw_points(triangulation_F, error_amt > 100.0);
+      // map_drawn = true;
     }
 
-    if (camera_locations.size() > 0) {
-      // rviz.draw_points(camera_locations, true);
+    if (frames.size() > 0) {
+      // rviz.draw_cameras(frames, 5);
+      std::vector<slam::Frame> tri_f_vec;
+      slam::Frame f_frame(new_frame, pose_F, new_feature_ids, new_feature_locations);
+      tri_f_vec.push_back(f_frame);
+      rviz.draw_cameras(tri_f_vec, 1);
     }
 
     prev_feature_locations = new_feature_locations;
@@ -248,8 +269,8 @@ int main(int argc, char **argv) {
     ++frame_num;
     std::cout << "Frame: " << frame_num << "\n";
     cv::imshow("input", render_frame);
-    std::cout << std::endl;
     key_press = (char)cv::waitKey(50);
+    std::cout << std::endl;
     if (key_press == 'q') break;
   }
 
