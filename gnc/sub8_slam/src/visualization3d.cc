@@ -5,9 +5,9 @@
 #include <vector>
 #include <memory>
 #include <iostream>
+#include <sub8_slam/slam.h>
 #include <opencv2/opencv.hpp>
 #include <mgl2/qt.h>
-#include <sub8_slam/slam.h>
 #include <sparse_bundle_adjustment/visualization.h>
 
 namespace sba {
@@ -171,6 +171,46 @@ void RvizVisualizer::draw_points(Point3Vector& points, bool flag) {
     point_marker.points[i].z = -point.z;
   }
   point_pub.publish(point_marker);
+}
+
+void RvizVisualizer::draw_cameras(const std::vector<Frame>& frames, int skip_frames) {
+  // draw cameras -- This function was a nightmare
+  visualization_msgs::Marker camera_marker, point_marker;
+  create_marker(camera_marker, point_marker);
+
+  camera_marker.points.resize(frames.size() * 6);
+  for (int i = 0, ii = 0; i < frames.size(); i += skip_frames) {
+    const Frame frame = frames[i];
+    Eigen::Vector4f opt;
+
+    Eigen::Vector3f frame_position;
+    frame_position = frame.camera_pose.translation();
+
+    camera_marker.points[ii].x = frame_position.x();
+    camera_marker.points[ii].y = frame_position.y();
+    camera_marker.points[ii++].z = frame_position.z();
+    opt = frame.camera_pose.matrix() * Eigen::Vector4f(0, 0, 0.3, 1);
+    camera_marker.points[ii].x = opt.x();
+    camera_marker.points[ii].y = opt.y();
+    camera_marker.points[ii++].z = opt.z();
+
+    camera_marker.points[ii].x = frame_position.x();
+    camera_marker.points[ii].y = frame_position.y();
+    camera_marker.points[ii++].z = frame_position.z();
+    opt = frame.camera_pose.matrix() * Eigen::Vector4f(0.1, 0, 0, 1);
+    camera_marker.points[ii].x = opt.x();
+    camera_marker.points[ii].y = opt.y();
+    camera_marker.points[ii++].z = opt.z();
+
+    camera_marker.points[ii].x = frame_position.x();
+    camera_marker.points[ii].y = frame_position.y();
+    camera_marker.points[ii++].z = frame_position.z();
+    opt = frame.camera_pose.matrix() * Eigen::Vector4f(0, 0.1, 0, 1);
+    camera_marker.points[ii].x = opt.x();
+    camera_marker.points[ii].y = opt.y();
+    camera_marker.points[ii++].z = opt.z();
+  }
+  camera_pub.publish(camera_marker);
 }
 
 void RvizVisualizer::draw_sba(const sba::SysSBA& sba, int decimation, int bicolor) {
