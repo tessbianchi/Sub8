@@ -31,7 +31,7 @@ sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main
 sudo apt-key adv --keyserver hkp://pool.sks-keyservers.net --recv-key 0xB01FA116
 sudo apt-get update -qq
 
-sudo apt-get install -qq cmake
+sudo apt-get install -qq cmake python-pip
 
 ####### Make tools
 sudo apt-get install -qq binutils-dev
@@ -44,8 +44,10 @@ mkdir -p /tmp/pyode-build
 cd /tmp/pyode-build
 sudo apt-get build-dep -y python-pyode
 sudo apt-get remove -y python-pyode
-apt-get source --compile python-pyode
+sudo apt-get source --compile python-pyode
 sudo dpkg -i python-pyode_*.deb
+
+sudo pip install -U setuptools
 
 # Normal things
 sudo apt-get install -qq libboost-all-dev python-dev python-qt4-dev python-qt4-gl python-opengl freeglut3-dev libassimp-dev
