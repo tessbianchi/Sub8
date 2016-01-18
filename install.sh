@@ -130,9 +130,20 @@ else
     rosdep update
 fi
 
+
+# ROS!
+mkdir -p "$CATKIN_DIR/src"
 ####### Install the ROS packages that we use
 sudo apt-get install -qq libompl-dev
 sudo apt-get install -qq ros-indigo-sophus
+
+####### SBA
+cd "$CATKIN_DIR/src"
+# Get Jake's fork of BPCG (Minor changes to make it build)
+git clone -q https://github.com/jpanikulam/vslam-bpcg.git
+# Get Jake's fork of sba (Minor changes to make it build)
+git clone -q https://github.com/jpanikulam/sba.git
+####### End SBA
 
 ####### Check if the sub is set up, and if it isn't, set it up
 set +e
@@ -141,7 +152,6 @@ if [ $? -ne 0 ]; then
     set -e
     echo "INSTALLER: Looks like you don't have the sub set up, let's do that"
     # Make our sub stuff
-    mkdir -p "$CATKIN_DIR/src"
     cd "$CATKIN_DIR/src"
     catkin_init_workspace
     catkin_make -C "$CATKIN_DIR"
