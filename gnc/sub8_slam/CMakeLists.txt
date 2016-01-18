@@ -18,13 +18,15 @@ else()
     message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 add_definitions(-std=gnu++11 -lmgl)
+add_definitions ("-Wall")
 
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/CMakeModules/")
 
 
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
+  roscpp sba
 )
+find_package(Ceres REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(MathGL REQUIRED)
 find_package(Eigen REQUIRED)
@@ -32,11 +34,10 @@ find_package(sba REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES sub8_slam
-  CATKIN_DEPENDS roscpp sba
-  DEPENDS Eigen OpenCV Boost system_lib MathGL sba
+  CATKIN_DEPENDS roscpp
+  DEPENDS Eigen OpenCV Boost system_lib MathGL sba_vis sba
 )
 
-message(${EIGEN_INCLUDE_DIR})
 include_directories(
   include
   ${EIGEN_INCLUDE_DIR}
@@ -45,41 +46,40 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
   ${MathGL_INCLUDE_DIRS}
-  ${SBA_INCLUDE_DIR}
+  ${CERES_INCLUDE_DIRS}
 )
 
-# add_executable(bayesian_filter svo_cpp/bayesian_filter.cc)
-# target_link_libraries(bayesian_filter ${MathGL_LIBRARIES})
 
 # TODO Don't list the files like a schmuck
+# TODO Make sub8_slam a library
 set(slam_sources
-  src/slam
   src/tracking
   src/motion
   src/visualization3d
   src/visualization2d
   src/frame
-  # src/sba
+  src/sba
 )
 
-add_executable(slam ${slam_sources} include/backward.cpp)
+add_executable(slam src/slam
+  ${slam_sources}
+  include/backward.cpp
+)
+
 target_link_libraries(slam
-  ${OpenCV_LIBS} # maybe _LIBRARIES
-  ${MathGL_LIBRARIES}
+  ${OpenCV_LIBS}
   ${catkin_LIBRARIES}
   # ${Boost_LIBRARIES}
-  ${SBA_LIB}
+  ${CERES_LIBRARIES}
   bfd
   dl
 )
 
-# Not a fan of fpermissive - but SBA won't link in C++11 without it
-set(CMAKE_CXX_FLAGS "-std=c++11 -fext-numeric-literals -fpermissive -g -rdynamic")
-
-# add_executable(sba_demo analysis/sba_test analysis/visualization include/backward.cpp)
-# target_link_libraries(sba_demo
-#   ${SBA_LIB}
+# add_executable(toy analysis/toy ${slam_sources} include/backward.cpp)
+# target_link_libraries(toy
 #   ${catkin_LIBRARIES}
+#   ${OpenCV_LIBS}
+#   ${CERES_LIBRARIES}
 #   bfd
 #   dl
 # )
