@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "monocular_slam");
   slam::RvizVisualizer rviz;
   if (argc != 2) {
-    std::cout << "Give me a video..." << std::endl;
+    std::cout << "Give me a video" << std::endl;
     return -1;
   }
 
