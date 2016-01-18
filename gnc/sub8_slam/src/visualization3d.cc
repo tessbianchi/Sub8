@@ -2,13 +2,10 @@
 // Do we have a method for drawing an ellipse in PCL?
 // Crap -- Can't compile PCL w/ C++11
 // Damnit...
-#include <vector>
 #include <memory>
-#include <iostream>
+#include <sba/sba.h>
+#include <sba/visualization.h>
 #include <sub8_slam/slam.h>
-#include <opencv2/opencv.hpp>
-#include <mgl2/qt.h>
-#include <sparse_bundle_adjustment/visualization.h>
 
 namespace sba {
 // This implements a function that is *supposed* to be in sba, but was excluded in the ros package
@@ -150,6 +147,9 @@ void RvizVisualizer::create_marker(visualization_msgs::Marker& camera_marker,
   point_marker.scale.z = 0.02;
   point_marker.type = visualization_msgs::Marker::POINTS;
 }
+
+#define JAKE_METHOD
+
 void RvizVisualizer::draw_points(Point3Vector& points, bool flag) {
   // TODO: Allow use to set color
   // Don't use camera_marker
@@ -158,7 +158,7 @@ void RvizVisualizer::draw_points(Point3Vector& points, bool flag) {
   point_marker.points.resize((int)(points.size()));
   point_marker.colors.resize((int)(points.size()));
   Point3 point;
-  for (int i = 0; i < points.size(); i++) {
+  for (size_t i = 0; i < points.size(); i++) {
     point = points[i];
     point_marker.colors[i].a = 1.0f;
     if (flag) {
@@ -166,25 +166,35 @@ void RvizVisualizer::draw_points(Point3Vector& points, bool flag) {
     } else {
       point_marker.colors[i].g = 1.0f;
     }
+#ifdef JAKE_METHOD
     point_marker.points[i].x = point.x;
-    point_marker.points[i].y = -point.y;
-    point_marker.points[i].z = -point.z;
+    point_marker.points[i].y = point.y;
+    point_marker.points[i].z = point.z;
+#else
+    point_marker.points[i].x = point.z;
+    point_marker.points[i].y = -point.x;
+    point_marker.points[i].z = -point.y;
+#endif
   }
   point_pub.publish(point_marker);
 }
 
-void RvizVisualizer::draw_cameras(const std::vector<Frame>& frames, int skip_frames) {
+void RvizVisualizer::draw_cameras(const FrameVector& frames, int skip_frames) {
   // draw cameras -- This function was a nightmare
   visualization_msgs::Marker camera_marker, point_marker;
   create_marker(camera_marker, point_marker);
 
   camera_marker.points.resize(frames.size() * 6);
-  for (int i = 0, ii = 0; i < frames.size(); i += skip_frames) {
+  for (size_t i = 0, ii = 0; i < frames.size(); i += skip_frames) {
     const Frame frame = frames[i];
     Eigen::Vector4f opt;
 
     Eigen::Vector3f frame_position;
     frame_position = frame.camera_pose.translation();
+
+#ifdef JAKE_METHOD
+// Print the method we're using at compile-time
+#pragma message("Using Jake's method for visualization")
 
     camera_marker.points[ii].x = frame_position.x();
     camera_marker.points[ii].y = frame_position.y();
@@ -209,6 +219,32 @@ void RvizVisualizer::draw_cameras(const std::vector<Frame>& frames, int skip_fra
     camera_marker.points[ii].x = opt.x();
     camera_marker.points[ii].y = opt.y();
     camera_marker.points[ii++].z = opt.z();
+#else
+#pragma message("Using SBA method for visualization")
+    camera_marker.points[ii].x = frame_position.z();
+    camera_marker.points[ii].y = -frame_position.x();
+    camera_marker.points[ii++].z = -frame_position.y();
+    opt = frame.camera_pose.matrix() * Eigen::Vector4f(0, 0, 0.3, 1);
+    camera_marker.points[ii].x = opt.z();
+    camera_marker.points[ii].y = -opt.x();
+    camera_marker.points[ii++].z = -opt.y();
+
+    camera_marker.points[ii].x = frame_position.z();
+    camera_marker.points[ii].y = -frame_position.x();
+    camera_marker.points[ii++].z = -frame_position.y();
+    opt = frame.camera_pose.matrix() * Eigen::Vector4f(0.3, 0, 0, 1);
+    camera_marker.points[ii].x = opt.z();
+    camera_marker.points[ii].y = -opt.x();
+    camera_marker.points[ii++].z = -opt.y();
+
+    camera_marker.points[ii].x = frame_position.z();
+    camera_marker.points[ii].y = -frame_position.x();
+    camera_marker.points[ii++].z = -frame_position.y();
+    opt = frame.camera_pose.matrix() * Eigen::Vector4f(0, 0.1, 0, 1);
+    camera_marker.points[ii].x = opt.z();
+    camera_marker.points[ii].y = -opt.x();
+    camera_marker.points[ii++].z = -opt.y();
+#endif
   }
   camera_pub.publish(camera_marker);
 }
