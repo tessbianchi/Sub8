@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(sub8_slam)
-# sudo apt-get install mathgl libmgl-dev
 # sudo apt-get install ros-indigo-sophus
-# Currently depending on --ros-indigo-sparse-bundle-adjustment
 # Should consider using libg2o instead (but documentation sparsity is not the sparsity I was looking for!)
 # g2o -- Not yet!
 # Require C++11
@@ -28,14 +26,13 @@ find_package(catkin REQUIRED COMPONENTS
 )
 find_package(Ceres REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(MathGL REQUIRED)
 find_package(Eigen REQUIRED)
 find_package(sba REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES sub8_slam
   CATKIN_DEPENDS roscpp
-  DEPENDS Eigen OpenCV Boost system_lib MathGL sba_vis sba
+  DEPENDS Eigen OpenCV Boost system_lib sba_vis sba
 )
 
 include_directories(
@@ -45,7 +42,6 @@ include_directories(
   # ${Sophus_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
-  ${MathGL_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}
 )
 
