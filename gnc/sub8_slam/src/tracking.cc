@@ -1,5 +1,5 @@
-#include <string>
 #include <sub8_slam/slam.h>
+#include <string>
 
 // #define UNDISTORT
 
@@ -25,10 +25,10 @@ void initialize(const cv::Mat& frame, PointVector& corners, IdVector& feature_id
   // These should NOT be exposed
   int feature_mask_offset = 5;
   int max_corners = 2000;
-  double quality = 0.25;
+  double quality = 0.32;  // 0.25
   double min_distance = 10;
-  int block_size = 7;      // 5
-  bool use_harris = true;  // Use harris corner detector?
+  int block_size = 5;       // 7
+  bool use_harris = false;  // Use harris corner detector? -- true
 
   // Create feature mask (Only search here for features)
   cv::Mat feature_mask = cv::Mat(frame.rows, frame.cols, CV_8UC1, 1);
@@ -71,6 +71,19 @@ Point3Vector get_points(const IdVector& keep_ids, const Point3Vector& points) {
 
   // TODO Make this and filter into a template
   Point3Vector output_points;
+  for (unsigned int k = 0; k < keep_ids.size(); k++) {
+    // Don't waste cycles with checks
+    output_points.push_back(points[k]);
+  }
+  return output_points;
+}
+
+PointVector get_points(const IdVector& keep_ids, const PointVector& points) {
+  // This is wasteful (making a new vector each time!)
+  // TODO: Make our own pnp solver that works with pt masks (No copies)
+
+  // TODO Make this and filter into a template
+  PointVector output_points;
   for (unsigned int k = 0; k < keep_ids.size(); k++) {
     // Don't waste cycles with checks
     output_points.push_back(points[k]);
