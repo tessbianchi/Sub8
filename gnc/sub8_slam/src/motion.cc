@@ -13,8 +13,7 @@ cv::Mat estimate_fundamental_matrix(const PointVector& pts_1, const PointVector&
 
 int num_in_front(const cv::Mat pose_1, const cv::Mat pose_2, const cv::Mat K,
                  const PointVector& pts_1, const PointVector& pts_2) {
-  //  Compute the number of points in front, without dehomogenizing
-
+\
   cv::Mat proj_1 = cv::Mat_<float>(K * pose_1);
   cv::Mat proj_2 = cv::Mat_<float>(K * pose_2);
   cv::Mat output_pts = cv::Mat(4, pts_2.size(), CV_32F);
@@ -22,7 +21,7 @@ int num_in_front(const cv::Mat pose_1, const cv::Mat pose_2, const cv::Mat K,
 
   int front_count = 0;
   // Count our friends in front of the camera
-  // TODO: Check if this should be -Z b/c of triangulation frame
+  // Doing the actual division because, turns out, sometimes w is < 0
   front_count = (int)cv::sum(((output_pts.row(2) / output_pts.row(3)) > 0.0) / 255)[0];
   return front_count;
 }

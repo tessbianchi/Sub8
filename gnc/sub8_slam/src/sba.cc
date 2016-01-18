@@ -83,7 +83,7 @@ void run_sba(cv::Mat& intrinsics, FrameVector& frames, Point3Vector& map) {
   // SPARSE CHOLESKY, BABY!!
   // TODO: Ceres; Schur-Jacobi mmm
   sys.useCholmod(true);
-  sys.doSBA(5, 1e-1, SBA_SPARSE_CHOLESKY);
+  sys.doSBA(5, 1e-3, SBA_SPARSE_CHOLESKY);
 
 #ifdef VISUALIZE
   rviz.draw_sba(sys, 1, 1);
