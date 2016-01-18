@@ -4,12 +4,12 @@
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
-#include <sparse_bundle_adjustment/sba.h>
 #include <visualization_msgs/Marker.h>
+#include <sba/sba.h>
 #include <ros/ros.h>
 #include <ros/assert.h>
 
-#define VISUALIZE
+// #define VISUALIZE
 
 namespace slam {
 
@@ -25,6 +25,8 @@ typedef std::vector<int> IdVector;
 
 typedef Eigen::Affine3f Pose;
 struct CvPose {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  // TODO: Deprecate this
   cv::Mat rotation;
   cv::Mat translation;
 
@@ -52,6 +54,7 @@ struct CvPose {
     pose_matrix << eigen_rotation, eigen_translation, 0.0, 0.0, 0.0, 1.0;
     Eigen::Affine3f eigen_pose;
     eigen_pose = pose_matrix;
+    return eigen_pose;
   }
 };
 
@@ -68,6 +71,7 @@ void optical_flow(const cv::Mat& prev_frame, const cv::Mat& cur_frame, PointVect
                   PointVector& next_pts, std::vector<uchar>& status);
 
 Point3Vector get_points(const IdVector& keep_ids, const Point3Vector& points);
+PointVector get_points(const IdVector& keep_ids, const PointVector& points);
 IdVector which_points(const StatusVector& status, const IdVector& previous);
 
 // ******* Motion *******
@@ -81,7 +85,8 @@ Pose estimate_motion_fundamental_matrix(const PointVector& pts_1, const PointVec
 
 // Estimate a pose transform given some manner of 3d "map", with each point in that map
 // corresponding to a 2d point (in a new image). PNP stands for "Perspective n-point"
-Pose estimate_motion_pnp(const Point3Vector& pts_3d, const PointVector& pts_2d, const cv::Mat& K);
+Pose estimate_motion_pnp(const Point3Vector& pts_3d, const PointVector& pts_2d, const cv::Mat& K,
+                         Pose& guess_pose);
 
 void triangulate(const Pose& pose_1, const Pose& pose_2, const cv::Mat K, const PointVector& pts_1,
                  const PointVector& pts_2, Point3Vector& triangulated);
@@ -91,11 +96,13 @@ double average_reprojection_error(const Point3Vector& points3d, const PointVecto
 
 // ******* SBA *******
 class Frame {
+  // TODO: Keyframe class that carries the actual image
   // Map feature ids
   // Actual image + pyramid
   // 2d feature locations when frame was taken
   // Estimated pose of frame
  public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   cv::Mat image;
   double max_x = 0;  // Must be set (Even though this is an integer in principle)
   double max_y = 0;  // Must be set (Even though this is an integer in principle)
@@ -108,14 +115,17 @@ class Frame {
   Frame(cv::Mat& image, Pose& pose, IdVector& feature_ids, PointVector& feature_locations);
   Frame(Pose& pose, IdVector& feature_ids, PointVector& feature_locations);
 };
+typedef std::vector<Frame, Eigen::aligned_allocator<Frame> > FrameVector;
 
-void run_sba(cv::Mat& intrinsics, std::vector<Frame>& frames, Point3Vector& map);
+void run_sba(cv::Mat& intrinsics, FrameVector& frames, Point3Vector& map);
 
 // ******* 2d visualization *******
 void draw_points(cv::Mat& frame, const PointVector& points, int radius = 5, int thickness = 1);
 void draw_point_ids(cv::Mat& frame, const PointVector& points, const std::vector<int>& point_ids);
 void draw_reprojection(cv::Mat& frame, const Point3Vector& points3d, const Pose& pose,
                        const cv::Mat& K);
+void draw_frame(cv::Mat& image, const Frame& frame, const cv::Mat& K,
+                const Point3Vector& points_3d);
 
 // ******* 3D Visualization *******
 class RvizVisualizer {
@@ -128,6 +138,6 @@ class RvizVisualizer {
                      visualization_msgs::Marker& point_marker);
   void draw_points(Point3Vector& points, bool flag);
   void draw_sba(const sba::SysSBA& sba, int decimation, int bicolor);
-  void draw_cameras(const std::vector<Frame>& frames, int skip_frames = 1);
+  void draw_cameras(const FrameVector& frames, int skip_frames = 1);
 };
 }

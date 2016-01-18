@@ -8,6 +8,7 @@ Frame::Frame(cv::Mat& image, Pose& pose, IdVector& feature_ids, PointVector& fea
   max_y = image.rows;
   set_features(feature_ids, feature_locations);
   set_pose(pose);
+  set_image(image);
 }
 
 Frame::Frame(Pose& pose, IdVector& feature_ids, PointVector& feature_locations) {
