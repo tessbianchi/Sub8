@@ -19,20 +19,24 @@ void draw_point_ids(cv::Mat& frame, const PointVector& points, const IdVector& p
 
 void draw_reprojection(cv::Mat& frame, const Point3Vector& points3d, const Pose& pose,
                        const cv::Mat& K) {
-  cv::Mat points2d_est;
+  PointVector points_est;
   cv::Mat rotation_vector;
 
-  CvPose q_pose(pose);
-  // Eigen::Matrix3f pose_rot;
-  // pose_rot = pose.linear()
-  // cv::eigen2cv(pose_rot.matrix(), rotation_matrix);
-  // cv::Rodrigues(rotation_matrix, rotation_vector);
-  cv::Rodrigues(q_pose.rotation, rotation_vector);
-  cv::projectPoints(points3d, rotation_vector, q_pose.translation, K, cv::Mat(), points2d_est);
+  CvPose cv_pose(pose);
+  cv::Rodrigues(cv_pose.rotation, rotation_vector);
+  cv::projectPoints(points3d, rotation_vector, cv_pose.translation, K, cv::Mat(), points_est);
 
-  PointVector points_est = points2d_est;  // casting tho
   for (unsigned int k = 0; k < points_est.size(); k++) {
     cv::circle(frame, points_est[k], 2, cv::Scalar(10, 10, 240), -1);
   }
+}
+
+void draw_frame(cv::Mat& image, const Frame& frame, const cv::Mat& K,
+                const Point3Vector& points_3d) {
+  // Draw slam:Frame w/ data
+  draw_points(image, frame.feature_locations);
+  draw_point_ids(image, frame.feature_locations, frame.feature_ids);
+
+  draw_reprojection(image, points_3d, frame.camera_pose, K);
 }
 }
