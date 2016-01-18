@@ -12,14 +12,16 @@ I suggest you do the following (Don't run as sudo!):
 
     wget -O install_sub8.sh https://github.com/uf-mil/Sub8/blob/master/install.sh
     chmod +x ./install_sub8.sh
-    ./install_sub8.sh
+    ./install_sub8.sh -d ~/repos/sub_dependencies -c ~/repos/catkin_ws
 
 
 #### If you have already cloned the sub (Or done sub work)
 
 You can just do (Don't run as sudo!)
 
-    ./install.sh
+    # Where ~/repos/catkin_ws is wherever you already have your catkin workspace set up
+    ./install.sh -d ~/repos/sub_dependencies -c ~/repos/catkin_ws
+
 
 In the Sub8 root directory. It will check if you have dependencies installed and *not install them* if you already have them
 
