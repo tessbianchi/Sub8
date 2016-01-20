@@ -41,7 +41,7 @@ void initialize(const cv::Mat& frame, PointVector& corners, IdVector& feature_id
   cv::goodFeaturesToTrack(frame, corners, max_corners, quality, min_distance, feature_mask,
                           block_size, use_harris);
 
-  for (unsigned int k = 0; k < corners.size(); k++) {
+  for (size_t k = 0; k < corners.size(); k++) {
     feature_ids.push_back(k);
   }
 }
@@ -50,13 +50,13 @@ IdVector which_points(const StatusVector& status, const IdVector& previous) {
   // Figure out which points from the original appear in the current frame, numbered
   IdVector point_associations;
   if (previous.size() == 0) {
-    for (unsigned int k = 0; k < status.size(); k++) {
+    for (size_t k = 0; k < status.size(); k++) {
       if (status[k]) {
         point_associations.push_back(k);
       }
     }
   } else {
-    for (unsigned int k = 0; k < status.size(); k++) {
+    for (size_t k = 0; k < status.size(); k++) {
       if (status[k]) {
         point_associations.push_back(previous[k]);
       }
@@ -71,7 +71,7 @@ Point3Vector get_points(const IdVector& keep_ids, const Point3Vector& points) {
 
   // TODO Make this and filter into a template
   Point3Vector output_points;
-  for (unsigned int k = 0; k < keep_ids.size(); k++) {
+  for (size_t k = 0; k < keep_ids.size(); k++) {
     // Don't waste cycles with checks
     output_points.push_back(points[k]);
   }
@@ -84,7 +84,7 @@ PointVector get_points(const IdVector& keep_ids, const PointVector& points) {
 
   // TODO Make this and filter into a template
   PointVector output_points;
-  for (unsigned int k = 0; k < keep_ids.size(); k++) {
+  for (size_t k = 0; k < keep_ids.size(); k++) {
     // Don't waste cycles with checks
     output_points.push_back(points[k]);
   }
@@ -94,7 +94,7 @@ PointVector get_points(const IdVector& keep_ids, const PointVector& points) {
 PointVector filter(const StatusVector& status, const PointVector& points) {
   // Return a copy of $points, where ever only the elements for which bool(status)==true are kept
   PointVector filtered_points;
-  for (unsigned int k = 0; k < status.size(); k++) {
+  for (size_t k = 0; k < status.size(); k++) {
     if (status[k]) {
       filtered_points.push_back(points[k]);
     } else {

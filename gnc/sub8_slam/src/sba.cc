@@ -17,6 +17,7 @@
 #include <sba/sba.h>
 #include <sub8_slam/slam.h>
 
+#define VISUALIZE
 namespace slam {
 
 frame_common::CamParams decompose_cv_intrinsics(cv::Mat& K) {
@@ -48,12 +49,10 @@ void run_sba(cv::Mat& intrinsics, FrameVector& frames, Point3Vector& map) {
     trans_d << pose.translation().matrix().cast<double>(), 1.0;
 
     Matrix3d orientation_d;
-    // orientation_d = pose.linear().matrix().cast<double>().transpose();
     orientation_d = pose.linear().matrix().cast<double>();
     Quaterniond q(orientation_d);
 
-    std::cout << trans_d.transpose() << '\n';
-    sys.addNode(trans_d, q, cam_params, false);
+    sys.addNode(trans_d, q, cam_params, frame_num == 0);
     sys.nodes[frame_num].setProjection();
     sys.nodes[frame_num].normRot();
   }
@@ -83,7 +82,7 @@ void run_sba(cv::Mat& intrinsics, FrameVector& frames, Point3Vector& map) {
   // SPARSE CHOLESKY, BABY!!
   // TODO: Ceres; Schur-Jacobi mmm
   sys.useCholmod(true);
-  sys.doSBA(5, 1e-3, SBA_SPARSE_CHOLESKY);
+  sys.doSBA(25, 1e-2, SBA_SPARSE_CHOLESKY);
 
 #ifdef VISUALIZE
   rviz.draw_sba(sys, 1, 1);
@@ -93,12 +92,15 @@ void run_sba(cv::Mat& intrinsics, FrameVector& frames, Point3Vector& map) {
   /////// Update frames
   for (size_t frame_num = 0; frame_num < frames.size(); frame_num++) {
     Frame frame(frames[frame_num]);
-    // Eigen::Affine3f aff(quat.cast<float>());
     Eigen::Affine3f tf;
     tf.matrix().block<3, 3>(0, 0) = sys.nodes[frame_num].qrot.toRotationMatrix().cast<float>();
     tf.matrix().col(3) = sys.nodes[frame_num].trans.cast<float>();
-    // frame.camera_pose = tf;
     frame.set_pose(tf);
+    for (size_t ftr_id_num = 0; ftr_id_num < frame.feature_ids.size(); ftr_id_num++) {
+      Eigen::Vector2d proj;
+      sys.nodes[frame_num].project2im(proj, sys.tracks[frame.feature_ids[ftr_id_num]].point);
+      frame.reprojection_locations.push_back(Point2((float)proj.x(), (float)proj.y()));
+    }
   }
   for (size_t point_num = 0; point_num < map.size(); point_num++) {
     Vector4d pt = sys.tracks[point_num].point;
