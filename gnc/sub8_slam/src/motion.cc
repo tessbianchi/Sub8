@@ -77,9 +77,9 @@ Pose estimate_motion_pnp(const Point3Vector& pts_3d, const PointVector& pts_2d, 
   cv::eigen2cv(eigen_translation, translation_vector);
   cv::eigen2cv(angle_axis.matrix(), rotation_vector);
 
-  cv::solvePnP(pts_3d, pts_2d, K, cv::Mat(), rotation_vector, translation_vector, true,
-  CV_ITERATIVE);
-  // solvePnPRansac(pts_3d, pts_2d, K, cv::Mat(), rotation_vector, translation_vector, true, 500, 8.0);
+  // cv::solvePnP(pts_3d, pts_2d, K, cv::Mat(), rotation_vector, translation_vector, true,
+  // CV_ITERATIVE);
+  solvePnPRansac(pts_3d, pts_2d, K, cv::Mat(), rotation_vector, translation_vector, true, 500, 8.0);
   CvPose pose;
   pose.translation = translation_vector;
   // How bout that!
@@ -96,12 +96,10 @@ Pose estimate_motion_pnp(const Point3Vector& pts_3d, const PointVector& pts_2d, 
   cv::cv2eigen(pose.rotation, rotation);
   cv::cv2eigen(pose.translation, translation);
   // final_pose << rotation.transpose(), rotation.transpose() * translation, 0.0, 0.0, 0.0, 1.0;
-  final_pose << rotation.transpose().eval(), -rotation.transpose().eval() * translation, 0.0, 0.0,
+  final_pose << rotation.transpose(), -rotation.transpose() * translation, 0.0, 0.0,
       0.0, 1.0;
 
-  Eigen::Affine3f true_final_pose;
-  true_final_pose = final_pose;
-
+  Eigen::Affine3f true_final_pose(final_pose);
   return true_final_pose;
 }
 
