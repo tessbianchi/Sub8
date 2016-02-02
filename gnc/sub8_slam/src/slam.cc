@@ -1,4 +1,12 @@
 /*
+  IDEAS:
+    - Normalizing from fundamental matrix motion estimation (Perfect reprojection!)
+    - New Map-frames????? I am not sure if that would actually do anything
+      = New features
+    - Better PNP solver
+      --> Sparse model-based image alignment (Minimize negative log-likelihood of intensity
+  residual)
+
 
   "Frame" class
     x --> Has features associated with it
@@ -151,8 +159,7 @@ int main(int argc, char **argv) {
 
   int frame_num = 0;
   char key_press = '\n';
-  for (;;) {
-    ////// Bookkeeping
+  for (;;) {  ////// Bookkeeping
     cap >> input_frame;
     if (input_frame.empty()) {
       std::cout << "Done";
@@ -224,83 +231,48 @@ int main(int argc, char **argv) {
 
       std::cout << "Drawing map\n";
       map_visible = slam::get_points(new_feature_ids, map);
-      // rviz.draw_points(map_visible, error_amt > 100.0);
+      rviz.draw_points(map_visible, error_amt > 100.0);
       pose_pnp =
           slam::estimate_motion_pnp(map_visible, new_feature_locations, intrinsics, prev_pose);
       double pnp_error_amt = slam::average_reprojection_error(map_visible, new_feature_locations,
                                                               pose_pnp, intrinsics);
 
       std::cout << "PNP Error: " << pnp_error_amt << std::endl;
+      ROS_ASSERT(!std::isnan(pnp_error_amt));
 
-      // Unadjusted
-      // slam::draw_reprojection(render_frame, map_visible, pose_pnp, intrinsics);
+      bool do_sba = false;
 
-      // For now, same error threshold as the reprojection error from the pose estimated by the
-      // fundamental matrix decomposition
-      if (pnp_error_amt < 300.0) {
-        // slam::Point3 pt(pose_pnp.translation);
-        // camera_locations.push_back(pt);
-
-        // slam::Frame key_frame(pose_pnp, new_feature_ids, new_feature_locations);
+      if (pose_pnp.translation().norm() < 0.0001) {
+        pose_pnp = prev_pose;
+        do_sba = true;
+      }
+      if ((pnp_error_amt < 30)) {
         slam::Frame key_frame(new_frame, pose_pnp, new_feature_ids, new_feature_locations);
         std::cout << pose_pnp.matrix() << std::endl;
         frames.push_back(key_frame);
-        if (frames.size() >= 2) {
-          slam::run_sba(intrinsics, frames, map);
-        }
-        slam::draw_reprojection(render_frame, map, key_frame.camera_pose, intrinsics);
+      } else {
+        // slam::Frame key_frame(new_frame, pose_pnp, new_feature_ids, new_feature_locations);
+        // std::cout << pose_pnp.matrix() << std::endl;
+        // frames.push_back(key_frame);
+        // do_sba = true;
       }
+
+      if (do_sba) {
+        slam::run_sba(intrinsics, frames, map, 6);
+      }
+      std::cout << frames[frames.size() - 1].camera_pose.matrix() << std::endl;
+      slam::draw_reprojection(render_frame, map, frames[frames.size() - 1].camera_pose, intrinsics);
     }
-    // }
 
     ////// Visualize
     slam::draw_points(render_frame, new_feature_locations);
     slam::draw_point_ids(render_frame, new_feature_locations, new_feature_ids);
 
-    // Shove that shit into Rviz!
-    // if ((error_amt < 100.0) && (!map_drawn) && (map.size() > 0)) {
-    if (true) {
-      ///------ Experimental new fundamental matrix estimation
-      /*
-      cv::Mat F_spec;
-      slam::StatusVector inliers_spec;
-      slam::PointVector initial_features_visible;
-      slam::PointVector cp_new_features_visible = new_feature_locations;
-      initial_features_visible = slam::get_points(new_feature_ids, initial_feature_locations);
-      F_spec = slam::estimate_fundamental_matrix(initial_features_visible, cp_new_features_visible,
-                                                 inliers);
-
-      // cp_new_features_visible = slam::filter(inliers, cp_new_features_visible);
-      // initial_features_visible = slam::filter(inliers, initial_features_visible);
-
-      slam::Pose pose_F_spec;
-      pose_F_spec = slam::estimate_motion_fundamental_matrix(
-          initial_features_visible, cp_new_features_visible, F_spec, intrinsics);
-
-      slam::Point3Vector triangulation_F_spec;
-      slam::triangulate(Eigen::Affine3f::Identity(), pose_F_spec, intrinsics,
-                        initial_features_visible, cp_new_features_visible, triangulation_F_spec);
-
-      slam::draw_reprojection(render_frame, triangulation_F_spec, pose_F_spec, intrinsics);
-      // map_drawn = true;
-      slam::FrameVector tri_f_vec;
-      slam::Frame f_frame(new_frame, pose_F_spec, new_feature_ids, cp_new_features_visible);
-      tri_f_vec.push_back(f_frame);
-
-      slam::Pose identity_pose(Eigen::Affine3f::Identity());
-      slam::Frame i_frame(new_frame, identity_pose, new_feature_ids, cp_new_features_visible);
-      tri_f_vec.push_back(i_frame);
-      rviz.draw_cameras(tri_f_vec, 1);
-      rviz.draw_points(triangulation_F_spec, 0);
-      */
-      ///------ End experimental
-    }
-
     if (frames.size() > 0) {
-      // rviz.draw_cameras(frames, 1);
+      rviz.draw_cameras(frames, 1);
     }
 
-    prev_pose = pose_pnp;
+    prev_pose = frames[frames.size() - 1].camera_pose;
     prev_feature_locations = new_feature_locations;
     prev_frame = new_frame.clone();
     prev_feature_ids = new_feature_ids;
@@ -310,7 +282,13 @@ int main(int argc, char **argv) {
     std::cout << std::endl;
     cv::imshow("input", render_frame);
     key_press = (char)cv::waitKey(10);
-    if (key_press == 'q') break;
+    if (key_press == 'q') {
+      break;
+    }
+    if (key_press == 't') {
+      slam::run_sba(intrinsics, frames, map, 15);
+      break;
+    }
   }
 
   return 0;
