@@ -109,6 +109,7 @@ class Frame {
   IdVector feature_ids;
   PointVector feature_locations;
   Pose camera_pose;
+  PointVector reprojection_locations;
   void set_pose(Pose& pose);
   void set_features(IdVector& feature_ids, PointVector& feature_locations);
   void set_image(cv::Mat& image);
@@ -117,15 +118,14 @@ class Frame {
 };
 typedef std::vector<Frame, Eigen::aligned_allocator<Frame> > FrameVector;
 
-void run_sba(cv::Mat& intrinsics, FrameVector& frames, Point3Vector& map);
+void run_sba(cv::Mat& intrinsics, FrameVector& frames, Point3Vector& map, int iterations=2);
 
 // ******* 2d visualization *******
 void draw_points(cv::Mat& frame, const PointVector& points, int radius = 5, int thickness = 1);
 void draw_point_ids(cv::Mat& frame, const PointVector& points, const std::vector<int>& point_ids);
 void draw_reprojection(cv::Mat& frame, const Point3Vector& points3d, const Pose& pose,
                        const cv::Mat& K);
-void draw_frame(cv::Mat& image, const Frame& frame, const cv::Mat& K,
-                const Point3Vector& points_3d);
+void draw_frame(cv::Mat& image, const Frame& frame, const cv::Mat& K);
 
 // ******* 3D Visualization *******
 class RvizVisualizer {

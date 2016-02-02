@@ -7,21 +7,20 @@
 #include <sba/visualization.h>
 #include <sub8_slam/slam.h>
 
-namespace sba {
 // This implements a function that is *supposed* to be in sba, but was excluded in the ros package
 // for some reason
-void drawGraph(const SysSBA& sba, const ros::Publisher& camera_pub, const ros::Publisher& point_pub,
-               int decimation, int bicolor, visualization_msgs::Marker camera_marker,
-               visualization_msgs::Marker point_marker) {
-  int num_points = sba.tracks.size();
-  int num_cameras = sba.nodes.size();
+void draw_graph(const sba::SysSBA& sys, const ros::Publisher& camera_pub,
+                const ros::Publisher& point_pub, int decimation, int bicolor,
+                visualization_msgs::Marker camera_marker, visualization_msgs::Marker point_marker) {
+  int num_points = sys.tracks.size();
+  int num_cameras = sys.nodes.size();
   if (num_points == 0 && num_cameras == 0) return;
 
   // draw points, decimated
   point_marker.points.resize((int)(num_points / (double)decimation + 0.5));
   point_marker.colors.resize((int)(num_points / (double)decimation + 0.5));
   for (int i = 0, ii = 0; i < num_points; i += decimation, ii++) {
-    const Vector4d& pt = sba.tracks[i].point;
+    const Vector4d& pt = sys.tracks[i].point;
     point_marker.colors[ii].a = 1.0f;
 
     point_marker.colors[ii].r = 1.0f;
@@ -38,10 +37,10 @@ void drawGraph(const SysSBA& sba, const ros::Publisher& camera_pub, const ros::P
   // draw cameras
   camera_marker.points.resize(num_cameras * 6);
   for (int i = 0, ii = 0; i < num_cameras; i++) {
-    const Node& nd = sba.nodes[i];
+    const sba::Node& nd = sys.nodes[i];
     Vector3d opt;
     Matrix<double, 3, 4> tr;
-    transformF2W(tr, nd.trans, nd.qrot);
+    sba::transformF2W(tr, nd.trans, nd.qrot);
 
     camera_marker.points[ii].x = nd.trans.z();
     camera_marker.points[ii].y = -nd.trans.x();
@@ -69,17 +68,17 @@ void drawGraph(const SysSBA& sba, const ros::Publisher& camera_pub, const ros::P
   }
 
   // draw point-plane projections
-  int num_tracks = sba.tracks.size();
+  int num_tracks = sys.tracks.size();
   int ii = camera_marker.points.size();
 
   for (int i = 0; i < num_tracks; i++) {
-    const ProjMap& prjs = sba.tracks[i].projections;
-    for (ProjMap::const_iterator itr = prjs.begin(); itr != prjs.end(); itr++) {
-      const Proj& prj = (*itr).second;
+    const sba::ProjMap& prjs = sys.tracks[i].projections;
+    for (sba::ProjMap::const_iterator itr = prjs.begin(); itr != prjs.end(); itr++) {
+      const sba::Proj& prj = (*itr).second;
       if (prj.pointPlane)  // have a ptp projection
       {
         camera_marker.points.resize(ii + 2);
-        Point pt0 = sba.tracks[i].point;
+        sba::Point pt0 = sys.tracks[i].point;
         Vector3d plane_point = prj.plane_point;
         Vector3d plane_normal = prj.plane_normal;
         Eigen::Vector3d w = pt0.head<3>() - plane_point;
@@ -100,7 +99,6 @@ void drawGraph(const SysSBA& sba, const ros::Publisher& camera_pub, const ros::P
 
   camera_pub.publish(camera_marker);
   point_pub.publish(point_marker);
-}
 }
 
 namespace slam {
@@ -127,9 +125,9 @@ void RvizVisualizer::create_marker(visualization_msgs::Marker& camera_marker,
   camera_marker.pose.orientation.y = 0.0;
   camera_marker.pose.orientation.z = 0.0;
   camera_marker.pose.orientation.w = 1.0;
-  camera_marker.scale.x = 0.02;
-  camera_marker.scale.y = 0.02;
-  camera_marker.scale.z = 0.02;
+  camera_marker.scale.x = 0.001;
+  camera_marker.scale.y = 0.001;
+  camera_marker.scale.z = 0.001;
   camera_marker.color.r = 0.0f;
   camera_marker.color.g = 1.0f;
   camera_marker.color.b = 1.0f;
@@ -253,7 +251,7 @@ void RvizVisualizer::draw_sba(const sba::SysSBA& sba, int decimation, int bicolo
   // Wraps that other stupid function
   visualization_msgs::Marker camera_marker, point_marker;
   create_marker(camera_marker, point_marker);
-  sba::drawGraph(sba, camera_pub, point_pub, decimation, bicolor, camera_marker, point_marker);
+  draw_graph(sba, camera_pub, point_pub, decimation, bicolor, camera_marker, point_marker);
 }
 
 }  // namespace: slam
