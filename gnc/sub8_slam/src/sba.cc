@@ -12,12 +12,14 @@
   --> Fix "collocation nodes" in global sba
   x --> TODO: clone our own sba source and debug with that
     --> Or just just use libg2o
+  --> expand_problem(frame) : Does this work? Does decrease setup time?
+  --> two_frame_ba
 
 */
 #include <sba/sba.h>
 #include <sub8_slam/slam.h>
 
-#define VISUALIZE
+// #define VISUALIZE
 namespace slam {
 
 frame_common::CamParams decompose_cv_intrinsics(cv::Mat& K) {
@@ -31,7 +33,9 @@ frame_common::CamParams decompose_cv_intrinsics(cv::Mat& K) {
   return cam_params;
 }
 
-void run_sba(cv::Mat& intrinsics, FrameVector& frames, Point3Vector& map) {
+void two_frame_ba(cv::Mat& intrinsics, Frame frame_1, Frame frame_2) {}
+
+void run_sba(cv::Mat& intrinsics, FrameVector& frames, Point3Vector& map, int iterations) {
 #ifdef VISUALIZE
   slam::RvizVisualizer rviz;
 #endif
@@ -82,7 +86,7 @@ void run_sba(cv::Mat& intrinsics, FrameVector& frames, Point3Vector& map) {
   // SPARSE CHOLESKY, BABY!!
   // TODO: Ceres; Schur-Jacobi mmm
   sys.useCholmod(true);
-  sys.doSBA(25, 1e-2, SBA_SPARSE_CHOLESKY);
+  sys.doSBA(iterations, 1e-4, SBA_SPARSE_CHOLESKY);
 
 #ifdef VISUALIZE
   rviz.draw_sba(sys, 1, 1);
