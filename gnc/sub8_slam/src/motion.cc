@@ -213,4 +213,16 @@ double average_reprojection_error(const Point3Vector& points3d, const PointVecto
   average_error /= error.rows;
   return average_error;
 }
+
+
+void reproject_points(const Point3Vector& points3d, PointVector& points2d,
+                                  const Pose& pose, const cv::Mat& K){
+
+  CvPose cv_pose(pose);
+  cv::Mat rotation_vector;
+  cv::Rodrigues(cv_pose.rotation, rotation_vector);
+
+  cv::projectPoints(points3d, rotation_vector, cv_pose.translation, K, cv::Mat(), points2d);
+
+}
 }

@@ -16,14 +16,17 @@ namespace slam {
 typedef float SlamPrecision;
 typedef cv::Point2f Point2;
 typedef cv::Point3f Point3;
+
 typedef std::vector<Point2> PointVector;
 typedef std::vector<Point3> Point3Vector;
+typedef std::vector<cv::KeyPoint> KeyPointVector;
 typedef std::vector<cv::Mat> Point4Vector;
 typedef std::vector<uchar> StatusVector;
 // TODO: int->size_t
 typedef std::vector<int> IdVector;
 
 typedef Eigen::Affine3f Pose;
+
 struct CvPose {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   // TODO: Deprecate this
@@ -94,6 +97,9 @@ void triangulate(const Pose& pose_1, const Pose& pose_2, const cv::Mat K, const 
 double average_reprojection_error(const Point3Vector& points3d, const PointVector& points2d,
                                   const Pose& pose, const cv::Mat& K);
 
+void reproject_points(const Point3Vector& points3d, PointVector& points2d,
+                                  const Pose& pose, const cv::Mat& K);
+
 // ******* SBA *******
 class Frame {
   // TODO: Keyframe class that carries the actual image
@@ -139,5 +145,49 @@ class RvizVisualizer {
   void draw_points(Point3Vector& points, bool flag);
   void draw_sba(const sba::SysSBA& sba, int decimation, int bicolor);
   void draw_cameras(const FrameVector& frames, int skip_frames = 1);
+};
+
+
+class PtamMap{
+  public:
+    PtamMap();
+    void addKeyFrame(Frame frame);
+};
+
+class PtamFrame{
+  public:
+  cv::Mat image;
+  // double max_x = 0;  // Must be set (Even though this is an integer in principle)
+  // double max_y = 0;  // Must be set (Even though this is an integer in principle)
+  // IdVector feature_ids;
+  // PointVector feature_locations;
+  Pose camera_pose;
+  // void set_pose(Pose& pose);
+  // void set_features(IdVector& feature_ids, PointVector& feature_locations);
+  //void set_image(cv::Mat& image, Pose& pose);
+  PtamFrame(cv::Mat& image, Pose& pose);
+  PtamFrame();
+  //Frame(cv::Mat& image, Pose& pose, IdVector& feature_ids, PointVector& feature_locations);
+  //Frame(Pose& pose, IdVector& feature_ids, PointVector& feature_locations);
+};
+
+class PoseTracker{
+  public:
+    PtamMap map;
+    CvPose currentPose;
+    CvPose currentMotion;
+    RvizVisualizer rviz;
+    PoseTracker(PtamMap map, RvizVisualizer rviz);
+    void bootstrap(cv::VideoCapture cap);
+};
+
+class PtamPoint{
+  public:
+    PtamFrame source_frame;
+    int source_level;
+    Point3 world_coords;
+    Point2 image_coords;
+    PtamPoint(const PtamFrame& frame, int source_level, const Point3& world_coords, const Point2& image_coords);
+    cv::Mat getPatch();
 };
 }
