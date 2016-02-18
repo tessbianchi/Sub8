@@ -60,7 +60,6 @@ struct CvPose {
     return eigen_pose;
   }
 };
-
 // Undistort the image, downsample by half
 void preprocess(cv::Mat& input_image, cv::Mat& output_image, const cv::Mat& intrinsics,
                 const cv::Mat& distortion);
@@ -189,5 +188,10 @@ class PtamPoint{
     Point2 image_coords;
     PtamPoint(const PtamFrame& frame, int source_level, const Point3& world_coords, const Point2& image_coords);
     cv::Mat getPatch();
+};
+
+class PNPSolver{
+  public:
+    slam::Pose solvePNP(slam::PointVector points2d, Point3Vector points3d, Pose pose_guess, cv::Mat K, int method);
 };
 }

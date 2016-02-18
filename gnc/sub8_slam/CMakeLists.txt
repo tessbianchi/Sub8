@@ -28,7 +28,6 @@ find_package(Ceres REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Eigen REQUIRED)
 find_package(sba REQUIRED)
-find_package(sophus REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES sub8_slam
@@ -49,6 +48,23 @@ include_directories(
 
 # TODO Don't list the files like a schmuck
 # TODO Make sub8_slam a library
+# set(slam_sources
+#   src/tracking
+#   src/motion
+#   src/visualization3d
+#   src/visualization2d
+#   src/frame
+#   src/sba
+# )
+
+# add_executable(slam src/slam
+#   ${slam_sources}
+#   include/backward.cpp
+# )
+
+
+
+
 set(slam_sources
   src/tracking
   src/motion
@@ -56,16 +72,14 @@ set(slam_sources
   src/visualization2d
   src/frame
   src/sba
+  src/pnpsolver
 )
 
-add_executable(slam src/slam
+add_executable(ptam src/ptam
   ${slam_sources}
   include/backward.cpp
 )
-
-add_executable(slam ${slam_sources} include/backward.cpp)
-
-target_link_libraries(slam
+target_link_libraries(ptam
   ${OpenCV_LIBS}
   ${catkin_LIBRARIES}
   # ${Boost_LIBRARIES}
@@ -73,42 +87,8 @@ target_link_libraries(slam
   bfd
   dl
 )
-
 # add_executable(toy analysis/toy ${slam_sources} include/backward.cpp)
 # target_link_libraries(toy
-
-set(ptam_sources
-  src/ptam
-  src/ptam_map
-  src/posetracker
-  src/tracking
-  src/motion
-  src/visualization3d
-  src/visualization2d
-  src/frame
-  src/matching
-  # src/sba
-)
-
-add_executable(ptam ${ptam_sources} include/backward.cpp)
-
-target_link_libraries(ptam
-  ${OpenCV_LIBS} # maybe _LIBRARIES
-  ${MathGL_LIBRARIES}
-  ${catkin_LIBRARIES}
-  # ${Boost_LIBRARIES}
-  ${SBA_LIB}
-  bfd
-  dl
-)
-
-
-# Not a fan of fpermissive - but SBA won't link in C++11 without it
-set(CMAKE_CXX_FLAGS "-std=c++11 -fext-numeric-literals -fpermissive -g -rdynamic")
-
-# add_executable(sba_demo analysis/sba_test analysis/visualization include/backward.cpp)
-# target_link_libraries(sba_demo
-#   ${SBA_LIB}
 #   ${catkin_LIBRARIES}
 #   ${OpenCV_LIBS}
 #   ${CERES_LIBRARIES}
