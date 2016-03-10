@@ -9,4 +9,7 @@ typedef std::vector<cv::Point> Contour;
 
 // Compute the centroid of an OpenCV contour (Not templated)
 cv::Point contour_centroid(Contour& contour);
+
+
+
 }
