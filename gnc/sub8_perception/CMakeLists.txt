@@ -52,6 +52,7 @@ add_library(sub8_pcl SHARED
     src/sub8_pcl/align.cc
     src/sub8_pcl/cv_utils.cc
     src/sub8_pcl/visualization.cc
+    src/sub8_pcl/buoy_tracker.cc
 )
 
 target_link_libraries(

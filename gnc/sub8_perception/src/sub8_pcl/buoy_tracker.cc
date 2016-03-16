@@ -16,7 +16,7 @@ TODO
 
 
 
-#include <sub8_pcl/buoyTracker_tools.hpp>
+#include <sub8_pcl/buoy_tracker_tools.hpp>
 
 namespace sub {
 
@@ -54,11 +54,11 @@ BuoyTracker::BuoyTracker(){
 }
 
 BuoyTracker::BuoyTracker(int color){
-        if(color == YELLOW){
+        if(color == 1){
             lowerColor = cv::Scalar(15, 100, 100);
             upperColor = cv::Scalar(30, 255, 255);
 
-        }else if(color == RED){
+        }else if(color == 2){
             lowerColor = cv::Scalar(105, 135, 135);
             upperColor = cv::Scalar(120, 255, 255);
 
@@ -123,13 +123,13 @@ void BuoyTracker::calibrateTracker(const cv::Mat frame){
 
             }
 
-            for(int i = 0; i != my_buckets.size(); ++i){
-                draw_circle(my_buckets[i].last_circle, output, output, my_buckets[i].color);
-            }
+            // for(int i = 0; i != my_buckets.size(); ++i){
+            //     draw_circle(my_buckets[i].last_circle, output, output, my_buckets[i].color);
+            // }
 
-            for(int i = 0; i != curr_circles.size(); ++i){
-                draw_circle(curr_circles[i], output, output, cv::Scalar(255,0,0));
-            }
+            // for(int i = 0; i != curr_circles.size(); ++i){
+            //     draw_circle(curr_circles[i], output, output, cv::Scalar(255,0,0));
+            // }
         }
         if(calibration_count == calibration_amount - 1){
             _isCalibrating = false;
